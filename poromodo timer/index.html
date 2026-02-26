@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pomodoro MAX</title>
+
+<style>
+body {
+  margin:0;
+  font-family:monospace;
+  color:white;
+  text-align:center;
+  background:#111;
+  overflow:hidden;
+  background-size:cover;
+  background-position:center;
+  transition:0.5s;
+}
+
+#container {
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  background:rgba(0,0,0,0.6);
+  padding:25px;
+  border-radius:15px;
+  width:320px;
+}
+
+#time { font-size:60px; }
+
+#progressBar {
+  width:100%;
+  height:10px;
+  background:#333;
+  border-radius:10px;
+  margin:10px 0;
+}
+
+#progress {
+  height:100%;
+  width:0%;
+  background:lime;
+  border-radius:10px;
+}
+
+button, input {
+  margin:5px;
+  padding:8px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.neon { color:#0f0; text-shadow:0 0 10px #0f0; }
+.light { background:#eee; color:black; }
+</style>
+</head>
+
+<body>
+
+<div id="container">
+  <h2>🍅 Pomodoro MAX</h2>
+
+  ⏱ Work: <input id="workInput" type="number" value="25">
+  ☕ Break: <input id="breakInput" type="number" value="5">
+
+  <div id="time">25:00</div>
+
+  <div id="progressBar"><div id="progress"></div></div>
+
+  <button onclick="start()">Start</button>
+  <button onclick="pause()">Pause</button>
+  <button onclick="reset()">Reset</button>
+
+  <p>Mode: <span id="mode">Work</span></p>
+  <p>Sessions: <span id="sessions">0</span></p>
+
+  <hr>
+
+  🎨 Theme:
+  <button onclick="setTheme('')">Dark</button>
+  <button onclick="setTheme('light')">Light</button>
+  <button onclick="setTheme('neon')">Neon</button>
+
+  <hr>
+
+  🖼️ Choose GIF/Image:
+  <input type="file" accept="image/*" onchange="manualBG(event)">
+
+  <hr>
+
+  🎧 Add Music:
+  <input type="file" accept="audio/*" onchange="loadMusic(event)">
+  <button onclick="toggleMusic()">Play / Pause</button>
+
+</div>
+
+<audio id="alarm" src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3"></audio>
+<audio id="music"></audio>
+
+<script>
+// 🔥 DEFAULT GIFS
+const gifs = {
+  work: "nice cat.gif",
+  break: "bf.gif",
+  longBreak: "ducks and ducklings.gif"
+};
+
+let timer=null;
+let time=1500;
+let totalTime=1500;
+let isWork=true;
+let sessions=0;
+let manualOverride=false;
+
+// ⏱ TIMER
+function updateDisplay(){
+  let m=Math.floor(time/60);
+  let s=time%60;
+  document.getElementById("time").innerText =
+    m+":"+(s<10?"0":"")+s;
+
+  let percent=((totalTime-time)/totalTime)*100;
+  document.getElementById("progress").style.width=percent+"%";
+}
+
+function start(){
+  if(timer) return;
+  applyInputs();
+
+  timer=setInterval(()=>{
+    if(time>0){
+      time--;
+      updateDisplay();
+    } else {
+      document.getElementById("alarm").play();
+
+      if(isWork){
+        isWork=false;
+        sessions++;
+
+        if(!manualOverride){
+          if(sessions % 4 === 0){
+            time=15*60;
+            setBG("longBreak");
+            document.getElementById("mode").innerText="Long Break";
+          } else {
+            time=document.getElementById("breakInput").value*60;
+            setBG("break");
+            document.getElementById("mode").innerText="Break";
+          }
+        }
+
+      } else {
+        isWork=true;
+        time=document.getElementById("workInput").value*60;
+
+        if(!manualOverride){
+          setBG("work");
+        }
+
+        document.getElementById("mode").innerText="Work";
+      }
+
+      totalTime=time;
+      document.getElementById("sessions").innerText=sessions;
+    }
+  },1000);
+}
+
+function pause(){
+  clearInterval(timer);
+  timer=null;
+}
+
+function reset(){
+  pause();
+  applyInputs();
+  isWork=true;
+  sessions=0;
+  manualOverride=false;
+  document.getElementById("mode").innerText="Work";
+  document.getElementById("sessions").innerText="0";
+  setBG("work");
+}
+
+function applyInputs(){
+  time=document.getElementById("workInput").value*60;
+  totalTime=time;
+  updateDisplay();
+}
+
+// 🎨 THEME
+function setTheme(t){
+  document.body.className=t;
+}
+
+// 🖼️ AUTO BG
+function setBG(type){
+  document.body.style.backgroundImage="url('"+gifs[type]+"')";
+}
+
+// 🖼️ MANUAL BG
+function manualBG(event){
+  let file=event.target.files[0];
+  if(!file) return;
+
+  let url=URL.createObjectURL(file);
+  document.body.style.backgroundImage="url('"+url+"')";
+  manualOverride=true; // stops auto switching
+}
+
+// 🎧 MUSIC
+function loadMusic(e){
+  let file=e.target.files[0];
+  if(file){
+    document.getElementById("music").src=URL.createObjectURL(file);
+  }
+}
+
+function toggleMusic(){
+  let m=document.getElementById("music");
+  if(m.paused) m.play();
+  else m.pause();
+}
+
+// 🚀 START
+setBG("work");
+updateDisplay();
+</script>
+
+</body>
+</html>
